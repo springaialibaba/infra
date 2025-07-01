@@ -30,8 +30,8 @@ const (
 )
 
 var (
-	areaRegexp   = regexp.MustCompile(`^/area\s+(.+)$`)
-	unareaRegexp = regexp.MustCompile(`^/unarea\s+(.+)$`)
+	areaRegexp   = regexp.MustCompile(`^/area(?:\s+(.*))?$`)
+	unareaRegexp = regexp.MustCompile(`^/unarea(?:\s+(.*))?$`)
 )
 
 type actor struct {
@@ -59,21 +59,25 @@ func (a *actor) Handler() error {
 
 	var err error
 	if areaMatch := areaRegexp.FindStringSubmatch(body); areaMatch != nil {
-		labels := strings.Fields(areaMatch[1])
-		for _, label := range labels {
-			label = areaPrefix + label
-			err = actors.CheckAndAddLabel(a.ghClient, repo.GetFullName(), issue.GetNumber(), label)
-			if err != nil {
-				return err
+		if len(areaMatch) > 1 && len(strings.TrimSpace(areaMatch[1])) > 0 {
+			labels := strings.Fields(areaMatch[1])
+			for _, label := range labels {
+				label = areaPrefix + label
+				err = actors.CheckAndAddLabel(a.ghClient, repo.GetFullName(), issue.GetNumber(), label)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	} else if unareaMatch := unareaRegexp.FindStringSubmatch(body); unareaMatch != nil {
-		labels := strings.Fields(unareaMatch[1])
-		for _, label := range labels {
-			label = areaPrefix + label
-			err = actors.RemoveLabelToIssue(a.ghClient, repo.GetFullName(), issue.GetNumber(), label)
-			if err != nil {
-				return err
+		if len(unareaMatch) > 1 && len(strings.TrimSpace(unareaMatch[1])) > 0 {
+			labels := strings.Fields(unareaMatch[1])
+			for _, label := range labels {
+				label = areaPrefix + label
+				err = actors.RemoveLabelToIssue(a.ghClient, repo.GetFullName(), issue.GetNumber(), label)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

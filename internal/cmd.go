@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/google/go-github/v72/github"
 	"github.com/gookit/slog"
@@ -90,19 +91,36 @@ func dispatch(ghEvent, ghEventPath string, ghClient *github.Client, opts *actors
 		}
 		genericEvent.Event = evt
 
-		for _, fn := range actorMap[IssueComment] {
-			event, err := copyEvent(&genericEvent)
-			if err != nil {
-				return err
+		commentBody := ""
+		if evt.Comment != nil && evt.Comment.Body != nil {
+			commentBody = *evt.Comment.Body
+		}
+		lines := strings.Split(commentBody, "\n")
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if trimmed == "" {
+				continue
 			}
-
-			actor := fn(ghClient, logger, opts)
-			if actor.Capture(*event) {
-				if err = actor.Handler(); err != nil {
-					exit("actor %s handle by err: %s", actor.Name(), err)
+			// 构造新的 event，每行命令都作为一个新的 comment body
+			newEvt := evt
+			if newEvt.Comment != nil {
+				newEvt.Comment.Body = &trimmed
+			}
+			genericEventLine := actors.GenericEvent{Event: newEvt}
+			for _, fn := range actorMap[IssueComment] {
+				event, err := copyEvent(&genericEventLine)
+				if err != nil {
+					return err
 				}
 
-				logger.Infof("actor %s successfully handle %s event", actor.Name(), IssueComment)
+				actor := fn(ghClient, logger, opts)
+				if actor.Capture(*event) {
+					if err = actor.Handler(); err != nil {
+						exit("actor %s handle by err: %s", actor.Name(), err)
+					}
+
+					logger.Infof("actor %s successfully handle %s event", actor.Name(), IssueComment)
+				}
 			}
 		}
 
