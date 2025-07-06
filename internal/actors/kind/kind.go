@@ -30,8 +30,8 @@ const (
 )
 
 var (
-	kindRegexp   = regexp.MustCompile(`^/kind\s+(.+)$`)
-	unkindRegexp = regexp.MustCompile(`^/unkind\s+(.+)$`)
+	kindRegexp   = regexp.MustCompile(`^/kind(?:\s+(.*))?$`)
+	unkindRegexp = regexp.MustCompile(`^/unkind(?:\s+(.*))?$`)
 )
 
 type actor struct {
@@ -58,21 +58,25 @@ func (a *actor) Handler() error {
 	)
 
 	if kindMatch := kindRegexp.FindStringSubmatch(body); kindMatch != nil {
-		labels := strings.Fields(kindMatch[1])
-		for _, label := range labels {
-			label = kindPrefix + label
-			err = actors.CheckAndAddLabel(a.ghClient, repo.GetFullName(), issue.GetNumber(), label)
-			if err != nil {
-				return err
+		if len(kindMatch) > 1 && len(strings.TrimSpace(kindMatch[1])) > 0 {
+			labels := strings.Fields(kindMatch[1])
+			for _, label := range labels {
+				label = kindPrefix + label
+				err = actors.CheckAndAddLabel(a.ghClient, repo.GetFullName(), issue.GetNumber(), label)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	} else if unkindMatch := unkindRegexp.FindStringSubmatch(body); unkindMatch != nil {
-		labels := strings.Fields(unkindMatch[1])
-		for _, label := range labels {
-			label = kindPrefix + label
-			err = actors.RemoveLabelToIssue(a.ghClient, repo.GetFullName(), issue.GetNumber(), label)
-			if err != nil {
-				return err
+		if len(unkindMatch) > 1 && len(strings.TrimSpace(unkindMatch[1])) > 0 {
+			labels := strings.Fields(unkindMatch[1])
+			for _, label := range labels {
+				label = kindPrefix + label
+				err = actors.RemoveLabelToIssue(a.ghClient, repo.GetFullName(), issue.GetNumber(), label)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
