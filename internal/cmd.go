@@ -90,6 +90,7 @@ func dispatch(ghEvent, ghEventPath string, ghClient *github.Client, opts *actors
 			return fmt.Errorf("unmarshal '%s' github event: %w", IssueComment, err)
 		}
 		genericEvent.Event = evt
+		logger.Debugf("received %s event: %s", IssueComment, genericEvent.Event)
 
 		commentBody := ""
 		if evt.Comment != nil && evt.Comment.Body != nil {
@@ -101,7 +102,11 @@ func dispatch(ghEvent, ghEventPath string, ghClient *github.Client, opts *actors
 			if trimmed == "" {
 				continue
 			}
-			// 构造新的 event，每行命令都作为一个新的 comment body
+			// Construct a new event, with each line of command as a new comment body
+			// For example: for the following issue comments
+			// /area test
+			// /kind test
+			// Two commands will be generated to execute the actbot.
 			newEvt := evt
 			if newEvt.Comment != nil {
 				newEvt.Comment.Body = &trimmed
