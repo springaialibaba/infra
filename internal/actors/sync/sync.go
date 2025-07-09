@@ -92,6 +92,14 @@ func (a *actor) Handler() error {
 		return err
 	}
 
+	// Regardless of whether it is successful or not,
+	// remove the 'needs-triage' tag to prove that the issue has been handled by the maintainers.
+	err = actors.RemoveLabelToIssue(a.ghClient, repo.GetFullName(), issue.GetNumber(), actors.NeedsTriageLabel)
+	if err != nil {
+		a.logger.Error("failed to remove 'needs-triage' label", "error", err)
+		return err
+	}
+
 	return nil
 }
 
